@@ -1,0 +1,11 @@
+{:servers [{:name "Server"
+            :firewall [{:protocol "tcp" :ports "22"}
+                       {:protocol "tcp" :ports "80"}]
+            :transfer ["list of files"
+                       "to be transferred"
+                       "to the server"]
+            :env ["token=15633825565"
+                  "enabled=false"]
+            :init ["apt update"
+                   "apt upgrade"]
+            :exec "command to run software"}]}
