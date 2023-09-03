@@ -49,11 +49,13 @@
                                                      :image "ubuntu-22-04-x64"
                                                      :ssh_keys [SSH_KEY]
                                                      :user_data (apply str
-                                                                       (concat '("#!/bin/bash\n") (map (fn [kv]
-                                                                                                         (str "echo export "
-                                                                                                              kv
-                                                                                                              " >>~/.bash_profile" "\n"))
-                                                                                                       environment)))})})]
+                                                                       (concat '("#!/bin/bash\n")
+                                                                               '("echo export HYPOSTASIS_READY=true >>/etc/environment\n")
+                                                                               (map (fn [kv]
+                                                                                      (str "echo export "
+                                                                                           kv
+                                                                                           " >>/etc/environment" "\n"))
+                                                                                    environment)))})})]
     (-> (:body request)
         (json/read-str :key-fn keyword)
         (get :droplet))))

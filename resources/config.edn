@@ -6,6 +6,6 @@
                        "to the server"]
             :env ["token=15633825565"
                   "enabled=false"]
-            :init ["apt update"
-                   "apt upgrade"]
+            :init ["echo $token"
+                   "echo $enabled"]
             :exec "command to run software"}]}

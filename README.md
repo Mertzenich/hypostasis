@@ -1,4 +1,4 @@
-# hypostasis
+# Hypostasis
 
 Configure application infrastructure programatically and perform automatic deployment.
 

@@ -1,5 +1,6 @@
 (ns hypostasis.core
   (:require [hypostasis.digitalocean :as ocean]
+            [hypostasis.remote :as remote]
             [clojure.java.io :as io]
             [clojure.edn :as edn])
   (:gen-class))
@@ -12,7 +13,7 @@
       slurp
       edn/read-string))
 
-;; NOTE: Step 1
+;; NOTE: Stage #1
 (defn provision-servers
   "Provision servers as defined by configuration, returns ..."
   [config]
@@ -22,4 +23,13 @@
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (println args)
+  (cond (some #{"--provision"} args)
+        (let [droplet-id (remote/provision (get-in config [:servers 0 :name])
+                                           (get-in config [:servers 0 :firewall])
+                                           (get-in config [:servers 0 :env]))]
+          ;; (println droplet-id)
+          (println "Server is warming up...")
+          (Thread/sleep 30000)          ; Waiting until server is warmed up, TODO: more elegant way of doing this
+          (hypostasis.remote/initialize droplet-id
+                                        (get-in config [:servers 0 :init])))))
