@@ -1,12 +1,21 @@
-{:servers [{:name "Server"
+{:servers [{:name "Carrot"
             :firewall [{:protocol "tcp" :ports "22"}
                        {:protocol "tcp" :ports "80"}]
             :transfer ["list of files"
                        "to be transferred"
                        "to the server"]
-            :env ["token=15633825565"
-                  "enabled=false"]
-            :init ["echo $token"
-                   "echo $enabled"
-                   "echo STOP RIGHT THERE CRIMINAL SCUM"]
+            :env ["TOKEN=15633825565"
+                  "ENABLED=false"]
+            :init ["echo $TOKEN"
+                   "echo $ENABLED"
+                   "ls /"]
+            :exec "command to run software"}
+           {:name "Stick"
+            :firewall [{:protocol "tcp" :ports "22"}
+                       {:protocol "tcp" :ports "80"}]
+            :transfer []
+            :env ["FOO=bar"
+                  "BIZ=baz"]
+            :init ["echo $FOO"
+                   "echo $BIZ"]
             :exec "command to run software"}]}
