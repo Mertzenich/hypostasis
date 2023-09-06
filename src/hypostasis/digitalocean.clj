@@ -4,8 +4,6 @@
 
 (def TOKEN (System/getenv "TOKEN"))
 
-(def SSH_KEY "2e:cb:2b:cf:a2:7b:96:2e:b8:35:2b:a8:c4:b1:54:4b")
-
 (defn- del-last-char
   [string]
   (subs string
@@ -29,86 +27,86 @@
            (keyword (if (or id body)
                       (del-last-char resource) ; Access single resource if an ID is provided
                       resource)))))))
+(defmacro define-resource
+  "Generate list, retrieve, create, and delete functions for a resource"
+  [resource]
+  ;; Drop the last character (s) for defining function names using singular name
+  (let [short-resource (del-last-char resource)]
+    `(do
+       (defn ~(symbol (str "list" "-" resource))
+         ~(str "List all " resource ".")
+         []
+         (query {:method client/get
+                 :resource ~(str resource)}))
 
-(defn list-droplets
-  "List all droplets"
-  []
-  (query {:method client/get
-          :resource "droplets"}))
+       (defn ~(symbol (str "retrieve" "-" short-resource))
+         ~(str "Retreieve a " short-resource ".")
+         [~'id]
+         (query {:method client/get
+                 :resource ~(str resource)
+                 :id ~'id}))
 
-(defn retrieve-droplet
-  "Retrieve droplet information"
-  [droplet-id]
-  (query {:method client/get
-          :resource "droplets"
-          :id droplet-id}))
+       (defn ~(symbol (str "create" "-" short-resource))
+         ~(str "Create a " short-resource ".")
+         [~'body]
+         (query {:method client/post
+                 :resource ~(str resource)
+                 :body ~'body}))
 
-(defn list-firewalls
-  "List all firewalls"
-  []
-  (query {:method client/get
-          :resource
-          "firewalls"}))
+       (defn ~(symbol (str "delete" "-" short-resource))
+         ~(str "Delete a " short-resource ".")
+         [~'id]
+         (query {:method client/delete
+                 :resource ~(str resource)
+                 :id ~'id})))))
 
-(defn retrieve-firewall
-  "Retrieve droplet information"
-  [firewall-id]
-  (query {:method client/get
-          :resource "firewalls"
-          :id firewall-id}))
+(define-resource "droplets")
+(define-resource "firewalls")
 
-(defn active-droplet?
-  "Check whether droplet is active"
-  [droplet-id]
-  (= (get (retrieve-droplet droplet-id) :status)
-     "active"))
+;; (defn list-droplets
+;;   "List all droplets"
+;;   []
+;;   (query {:method client/get
+;;           :resource "droplets"}))
 
-(defn create-droplet
-  "Create a new droplet"
-  [name environment]
-  ;; [method resource id body]
-  (query {:method client/post
-          :resource "droplets"
-          :body {:name name
-                 :tags ["hypostasis"]
-                 :region "sfo"
-                 :size "s-1vcpu-512mb-10gb"
-                 :image "ubuntu-22-04-x64"
-                 :ssh_keys [SSH_KEY]
-                 :user_data (apply str
-                                   (concat '("#!/bin/bash\n")
-                                           '("echo export HYPOSTASIS_READY=true >>/etc/environment\n")
-                                           (map (fn [kv]
-                                                  (str "echo export "
-                                                       kv
-                                                       " >>/etc/environment" "\n"))
-                                                environment)))}}))
+;; (defn retrieve-droplet
+;;   "Retrieve droplet information"
+;;   [droplet-id]
+;;   (query {:method client/get
+;;           :resource "droplets"
+;;           :id droplet-id}))
 
-(defn delete-droplet
-  "Delete an existing droplet"
-  [droplet-id]
-  (query {:method client/delete
-          :resource "droplets"
-          :id droplet-id}))
+;; (defn create-droplet
+;;   "Create a new droplet"
+;;   [name body]
+;;   ;; [method resource id body]
+;;   (query {:method client/post
+;;           :resource "droplets"
+;;           :body body}))
 
-(defn create-firewall
-  "Create a new firewall"
-  [name droplet-id inbound-rules]
-  (query {:method client/post
-          :resource "firewalls"
-          :body {:name name
-                 :droplet_ids [droplet-id]
-                 ;; Default: [{:protocol "tcp", :ports "22", :sources {:addresses ["0.0.0.0/0" "::/0"]}}]
-                 :inbound_rules inbound-rules
-                 :user_data "carrotonastick"
-                 ;; Allow all outbound by default
-                 :outbound_rules [{:protocol "icmp",
-                                   :ports "0",
-                                   :destinations {:addresses ["0.0.0.0/0" "::/0"]}}
-                                  {:protocol "tcp",
-                                   :ports "0",
-                                   :destinations {:addresses ["0.0.0.0/0" "::/0"]}}
-                                  {:protocol "udp",
-                                   :ports "0",
-                                   :destinations {:addresses ["0.0.0.0/0" "::/0"]}}]}}))
+;; (defn delete-droplet
+;;   "Delete an existing droplet"
+;;   [droplet-id]
+;;   (query {:method client/delete
+;;           :resource "droplets"
+;;           :id droplet-id}))
 
+;; (defn list-firewalls
+;;   "List all firewalls"
+;;   []
+;;   (query {:method client/get
+;;           :resource "firewalls"}))
+
+;; (defn retrieve-firewall
+;;   "Retrieve droplet information"
+;;   [firewall-id]
+;;   (query {:method client/get
+;;           :resource "firewalls"
+;;           :id firewall-id}))
+
+;; (defn create-firewall
+;;   "Create a new firewall"
+;;   [body]
+;;   (query {:method client/post
+;;           :resource "firewalls"
+;;           :body body}))
