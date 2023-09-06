@@ -3,18 +3,52 @@
             [clj-ssh.ssh :as ssh]
             [clojure.string :as str]))
 
+(def SSH_KEY "2e:cb:2b:cf:a2:7b:96:2e:b8:35:2b:a8:c4:b1:54:4b")
+
+(defn active-droplet?
+  "Check whether droplet is active"
+  [droplet-id]
+  (= (get (ocean/retrieve-droplet droplet-id) :status)
+     "active"))
+
 (defn provision
   "Provision a server from the server definition"
   [name firewall env]
   (let [firewall-def (map (fn [rule]
                             (assoc rule :sources {:addresses ["0.0.0.0/0" "::/0"]}))
                           firewall)
-        droplet (ocean/create-droplet name env)
+        droplet (ocean/create-droplet {:name name
+                                       :tags ["hypostasis"]
+                                       :region "sfo"
+                                       :size "s-1vcpu-512mb-10gb"
+                                       :image "ubuntu-22-04-x64"
+                                       :ssh_keys [SSH_KEY]
+                                       ;; TODO: Clean this up with some helper functions
+                                       :user_data (apply str
+                                                         (concat '("#!/bin/bash\n")
+                                                                 '("echo export HYPOSTASIS_READY=true >>/etc/environment\n")
+                                                                 (map (fn [kv]
+                                                                        (str "echo export "
+                                                                             kv
+                                                                             " >>/etc/environment" "\n"))
+                                                                      env)))})
         droplet-id (get droplet :id)
-        firewall (ocean/create-firewall name
-                                        droplet-id
-                                        firewall-def)]
-    (while (not (ocean/active-droplet? droplet-id)) (println "Creating server:" name) (Thread/sleep 1000))
+        firewall (ocean/create-firewall {:name name
+                                         :droplet_ids [droplet-id]
+                                         ;; Default: [{:protocol "tcp", :ports "22", :sources {:addresses ["0.0.0.0/0" "::/0"]}}]
+                                         :inbound_rules firewall-def
+                                         :user_data "carrotonastick"
+                                         ;; Allow all outbound by default
+                                         :outbound_rules [{:protocol "icmp",
+                                                           :ports "0",
+                                                           :destinations {:addresses ["0.0.0.0/0" "::/0"]}}
+                                                          {:protocol "tcp",
+                                                           :ports "0",
+                                                           :destinations {:addresses ["0.0.0.0/0" "::/0"]}}
+                                                          {:protocol "udp",
+                                                           :ports "0",
+                                                           :destinations {:addresses ["0.0.0.0/0" "::/0"]}}]})]
+    (while (not (active-droplet? droplet-id)) (println "Creating server:" name) (Thread/sleep 1000))
     (println "Server" name "has been created.")
     droplet-id))
 
@@ -43,7 +77,6 @@
       (ssh/with-connection session
         ;; TODO: Use provided init
         ;; TODO: Probably switch to using env as a cmd prefix instead of writing to bash profile
-        (let [result (ssh/ssh session {:cmd "echo $token"})])
         (let [result (ssh/ssh session {:cmd "echo $token"})]
           (println "Token:" (result :out)))
         (let [result (ssh/ssh session {:cmd "echo $enabled"})]
