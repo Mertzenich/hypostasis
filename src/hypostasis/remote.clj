@@ -71,15 +71,13 @@
                                                    droplet-ip
                                                    {:username "root" :strict-host-key-checking :no})))
       (println "Initializing server...")
-      (Thread/sleep 1000))
+      (Thread/sleep 5000))
 
     (let [session    (ssh/session agent droplet-ip {:username "root" :strict-host-key-checking :no})]
       (ssh/with-connection session
-        ;; TODO: Use provided init
-        ;; TODO: Probably switch to using env as a cmd prefix instead of writing to bash profile
-        (let [result (ssh/ssh session {:cmd "echo $token"})]
-          (println "Token:" (result :out)))
-        (let [result (ssh/ssh session {:cmd "echo $enabled"})]
-          (println "Enabled: " (result :out)))))))
+        ;; TODO: Probably switch to using env as a cmd prefix instead of writing to bash profile?
+        (doseq [i (range (count init))]
+          (let [result (ssh/ssh session {:cmd (get init i)})]
+            (println (str "[CMD] \"" (get init i) "\": " (:out result)))))))))
 
 ;; (hypostasis.remote/initialize (ocean/retrieve-droplet 372657238) "foo")

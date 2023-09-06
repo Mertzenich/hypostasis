@@ -25,11 +25,14 @@
   [& args]
   (println args)
   (cond (some #{"--provision"} args)
-        (let [droplet-id (remote/provision (get-in config [:servers 0 :name])
-                                           (get-in config [:servers 0 :firewall])
-                                           (get-in config [:servers 0 :env]))]
-          ;; (println droplet-id)
-          (println "Server is warming up...")
-          (Thread/sleep 30000)          ; Waiting until server is warmed up, TODO: more elegant way of doing this
-          (hypostasis.remote/initialize droplet-id
-                                        (get-in config [:servers 0 :init])))))
+        (doseq [i (range (count (get config :servers)))]
+
+          (let [servers (get config :servers)
+                droplet-id (remote/provision (get-in servers [i :name])
+                                             (get-in servers [i :firewall])
+                                             (get-in servers [i :env]))]
+            (println "Server is warming up...")
+            (Thread/sleep 30000)          ; Waiting until server is warmed up, TODO: more elegant way of doing this
+            (hypostasis.remote/initialize droplet-id
+                                          (get-in servers [i :init]))))
+        ))

@@ -60,5 +60,8 @@
                  :resource ~(str resource)
                  :id ~'id})))))
 
+(declare list-droplets retrieve-droplet create-droplet delete-droplet
+         list-firewalls retrieve-firewall create-firewall delete-firewall)
+
 (define-resource "droplets")
 (define-resource "firewalls")

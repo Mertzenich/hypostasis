@@ -7,5 +7,6 @@
             :env ["token=15633825565"
                   "enabled=false"]
             :init ["echo $token"
-                   "echo $enabled"]
+                   "echo $enabled"
+                   "echo STOP RIGHT THERE CRIMINAL SCUM"]
             :exec "command to run software"}]}
