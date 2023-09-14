@@ -60,6 +60,7 @@
                  :resource ~(str resource)
                  :id ~'id})))))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (declare list-droplets retrieve-droplet create-droplet delete-droplet
          list-firewalls retrieve-firewall create-firewall delete-firewall)
 

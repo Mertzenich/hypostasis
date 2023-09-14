@@ -1,21 +1,26 @@
 {:servers [{:name "Carrot"
             :firewall [{:protocol "tcp" :ports "22"}
                        {:protocol "tcp" :ports "80"}]
-            :transfer ["list of files"
-                       "to be transferred"
-                       "to the server"]
             :env ["TOKEN=15633825565"
-                  "ENABLED=false"]
-            :init ["echo $TOKEN"
-                   "echo $ENABLED"
-                   "ls /"]
+                  "ENABLED=false"
+                  "DEBIAN_FRONTEND=noninteractive"]
+            :transfer ["foo.txt"
+                       "bar.txt"]
+            ;; :init ["echo $TOKEN"
+            ;;        "echo $ENABLED"
+            ;;        "apt-get update"
+            ;;        "apt-get -y upgrade"]
+            :init ["cat foo.txt"
+                   "cat bar.txt"]
             :exec "command to run software"}
-           {:name "Stick"
-            :firewall [{:protocol "tcp" :ports "22"}
-                       {:protocol "tcp" :ports "80"}]
-            :transfer []
-            :env ["FOO=bar"
-                  "BIZ=baz"]
-            :init ["echo $FOO"
-                   "echo $BIZ"]
-            :exec "command to run software"}]}
+           ;; {:name "Stick"
+           ;;  :firewall [{:protocol "tcp" :ports "22"}
+           ;;             {:protocol "tcp" :ports "80"}]
+           ;;  :env ["FOO=bar"
+           ;;        "BIZ=baz"]
+           ;;  :transfer []
+           ;;  :init ["echo $FOO"
+           ;;         "echo $BIZ"
+           ;;         "for i in $(seq 1 10); do echo $i; sleep 1; done"]
+           ;;  :exec "command to run software"}
+           ]}

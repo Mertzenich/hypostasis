@@ -1,7 +1,8 @@
 (ns hypostasis.remote
   (:require [hypostasis.digitalocean :as ocean]
             [clj-ssh.ssh :as ssh]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 (def SSH_KEY "2e:cb:2b:cf:a2:7b:96:2e:b8:35:2b:a8:c4:b1:54:4b")
 
@@ -48,7 +49,9 @@
                                                           {:protocol "udp",
                                                            :ports "0",
                                                            :destinations {:addresses ["0.0.0.0/0" "::/0"]}}]})]
-    (while (not (active-droplet? droplet-id)) (println "Creating server:" name) (Thread/sleep 1000))
+    (println "Creating server:" name)
+    (while (not (active-droplet? droplet-id))
+      (Thread/sleep 1000))
     (println "Server" name "has been created.")
     droplet-id))
 
@@ -62,22 +65,44 @@
 
 (defn initialize
   "Initialize server by executing commands"
-  [droplet-id init]
+  [droplet-id transfer init]
   (let [droplet    (ocean/retrieve-droplet droplet-id)
         droplet-ip (get-in droplet [:networks :v4 0 :ip_address])
         agent      (ssh/ssh-agent {})]
 
+    (println "Initializing server...")
     (while (not (ready-to-initialize? (ssh/session agent
                                                    droplet-ip
                                                    {:username "root" :strict-host-key-checking :no})))
-      (println "Initializing server...")
       (Thread/sleep 5000))
 
     (let [session    (ssh/session agent droplet-ip {:username "root" :strict-host-key-checking :no})]
       (ssh/with-connection session
         ;; TODO: Probably switch to using env as a cmd prefix instead of writing to bash profile?
+
+        (println "TRANSFER" ":" transfer)
+        (let [channel (ssh/ssh-sftp session)]
+          (ssh/with-channel-connection channel
+            ;; TODO: Add support for non-root accounts
+            (ssh/sftp channel {} :cd "/root")
+            (doseq [i (range (count transfer))]
+              (let [file-name (get transfer i)
+                    file-path (str "resources/" file-name)]
+                (ssh/sftp channel {} :put file-path file-name)))))
+
+;; Perform initialization
         (doseq [i (range (count init))]
-          (let [result (ssh/ssh session {:cmd (get init i)})]
-            (println (str "[CMD] \"" (get init i) "\": " (:out result)))))))))
+          (let [result (ssh/ssh session {:cmd (get init i) :out :stream})
+                input-stream (:out-stream result)
+                reader (io/reader input-stream)]
+              (doall (for [line (line-seq reader)]
+                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line))))))))
+
+  droplet-id)
+
+;;(defn execute
+;;  "Execute command on server"s
+;;  ;; TODO: Implement this
+;;  '...)
 
 ;; (hypostasis.remote/initialize (ocean/retrieve-droplet 372657238) "foo")
