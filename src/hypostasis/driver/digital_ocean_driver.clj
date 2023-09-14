@@ -1,7 +1,7 @@
-(ns hypostasis.driver.digitaloceandriver
+(ns hypostasis.driver.digital-ocean-driver
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [hypostasis.digitalocean :as ocean]
+            [hypostasis.driver.util.digitalocean :as ocean]
             [hypostasis.driver.driver :as remote]
             [clj-ssh.ssh :as ssh]))
 

@@ -1,4 +1,4 @@
-(ns hypostasis.digitalocean
+(ns hypostasis.driver.util.digitalocean
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]))
 

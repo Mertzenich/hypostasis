@@ -1,6 +1,6 @@
 (ns hypostasis.core
   (:require [clojure.edn :as edn]
-            [hypostasis.driver.digitaloceandriver :refer [->DigitalOcean]])
+            [hypostasis.driver.digital-ocean-driver :refer [->DigitalOcean]])
   ;; (:import [hypostasis.driver.digitaloceandriver DigitalOcean])
   (:gen-class))
 
@@ -35,26 +35,13 @@
         (doseq [i (range (count (get config :servers)))]
 
           (let [servers (get config :servers)
-                ;; driver (->DigitalOcean (get-in servers [i :name])
-                ;;                        (get-in servers [i :firewall])
-                ;;                        (get-in servers [i :env])
-                ;;                        (get-in servers [i :transfer])
-                ;;                        (get-in servers [i :init]))
                 driver (->DigitalOcean (get-in servers [i :name])
                                        (get-in servers [i :firewall])
                                        (get-in servers [i :env])
                                        (get-in servers [i :transfer])
                                        (get-in servers [i :init]))
-                droplet-id (.provision driver)
-                ;; droplet-id (remote/provision (get-in servers [i :name])
-                ;;                              (get-in servers [i :firewall])
-                ;;                              (get-in servers [i :env]))
-                ]
+                droplet-id (.provision driver)]
             (println "Server is warming up...")
-            (Thread/sleep 30000)          ; Waiting until server is warmed up, TODO: more elegant way of doing this
+            (Thread/sleep 30000)                            ; Waiting until server is warmed up, TODO: more elegant way of doing this
             (.initialize driver
-                         droplet-id)
-            ;; (remote/initialize droplet-id
-            ;;                    (get-in servers [i :transfer])
-            ;;                    (get-in servers [i :init]))
-            ))))
+                         droplet-id)))))
