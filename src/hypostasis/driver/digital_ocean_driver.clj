@@ -95,7 +95,8 @@
                   input-stream (:out-stream result)
                   reader (io/reader input-stream)]
               (doall (for [line (line-seq reader)]
-                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line))))))))))
+                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line)))))))))
+  (execute [_] '...))
 
 (def driver (->DigitalOcean "Carrot"
                             [{:protocol "tcp", :ports "22"} {:protocol "tcp", :ports "80"}]

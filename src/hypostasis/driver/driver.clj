@@ -3,4 +3,5 @@
 (defprotocol Driver
   "Driver for provisioning and initializing a server"
   (provision [this])
-  (initialize [this droplet-id]))
+  (initialize [this droplet-id])
+  (execute [this]))
