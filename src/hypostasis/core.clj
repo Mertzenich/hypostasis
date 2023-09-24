@@ -39,22 +39,27 @@
 ;;   [driver]
 ;;   (.initialize driver))
 
+(defn- launch
+  "Automatically provision, initialize, and execute every server in the configuration"
+  []
+  (->> (mapv #(future (let [driver (->DigitalOcean (:name %)
+                                                   (:firewall %)
+                                                   (:env %)
+                                                   (:transfer %)
+                                                   (:init %)
+                                                   (:exec %)
+                                                   (atom 0))]
+                        (.provision driver)
+                        (println "Server" (:name driver) "is warming up.")
+                        (Thread/sleep 30000)
+                        (.initialize driver)))
+             (get config :servers))
+             ;; (mapv deref)
+       (mapv #(future (.execute (deref %))))))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (println args)
   (cond (some #{"--provision"} args)
-        (->> (mapv #(future (let [driver (->DigitalOcean (:name %)
-                                                         (:firewall %)
-                                                         (:env %)
-                                                         (:transfer %)
-                                                         (:init %)
-                                                         (:exec %)
-                                                         (atom 0))]
-                              (.provision driver)
-                              (println "Server" (:name driver) "is warming up.")
-                              (Thread/sleep 30000)
-                              (.initialize driver)))
-                   (get config :servers))
-             ;; (mapv deref)
-             (mapv #(future (.execute (deref %)))))))
+        (launch)))
