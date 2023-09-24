@@ -87,8 +87,6 @@
 
       (let [session    (ssh/session agent droplet-ip {:username "root" :strict-host-key-checking :no})]
         (ssh/with-connection session
-        ;; TODO: Probably switch to using env as a cmd prefix instead of writing to bash profile?
-
           (println "TRANSFER" ":" transfer)
           (let [channel (ssh/ssh-sftp session)]
             (ssh/with-channel-connection channel
@@ -108,10 +106,6 @@
                        (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line))))))))
     _)
   (execute [_]
-    ;; (proc/process "ssh"
-    ;;               (str "root@" (get-in (ocean/retrieve-droplet @id-atom) [:networks :v4 0 :ip_address]))
-    ;;               "-o" "ServerAliveInterval 60"
-    ;;               "bash test.sh")
     (let [droplet (ocean/retrieve-droplet @id-atom)
           droplet-ip (get-in droplet [:networks :v4 0 :ip_address])]
       (with-open [rdr (io/reader (:out (proc/process {:err :inherit
