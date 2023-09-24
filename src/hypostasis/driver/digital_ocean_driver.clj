@@ -120,35 +120,3 @@
               (println (str "[" (:name droplet) "]") "[EXEC]" line)
               (recur))))))
     _))
-
-(defn stream-events
-  "Connect to gerrit server and stream events to stdout"
-  [host port]
-  (let [agent (ssh/ssh-agent {})
-        session (ssh/session agent host {:username "root"
-                                         :strict-host-key-checking :no
-                                         :ServerAliveInterval 60
-                                         :port port})]
-    (ssh/with-connection session
-      (let [result (ssh/ssh session {:cmd "bash test.sh"
-                                     :out :stream})
-            reader (io/reader (:out-stream result))]
-        (doall (map println (line-seq reader)))))))
-
-;; (def s (ssh/ssh (ssh/session (ssh/ssh-agent {}) "143.244.176.164" {:username "root" :strict-host-key-checking :no}) {:cmd "bash test.sh" :out :stream}))
-;;
-;; (with-open [input-stream (:out-stream s)]
-;;                    (let [buffer (byte-array 2048)]
-;;                      (loop [total-bytes-read 0]
-;;                        (let [bytes-read (.read input-stream buffer)]
-;;                          (if (pos? bytes-read)
-;;                            (do
-;;                              (println (String. buffer 0 bytes-read "UTF-8"))
-;;                              (recur (+ total-bytes-read bytes-read)))
-;;                            total-bytes-read)))))
-
-;; (def driver (->DigitalOcean "Carrot"
-;;                             [{:protocol "tcp", :ports "22"} {:protocol "tcp", :ports "80"}]
-;;                             ["TOKEN=15633825565" "ENABLED=false" "DEBIAN_FRONTEND=noninteractive"]
-;;                             ["foo.txt" "bar.txt"]
-;;                             ["cat foo.txt" "cat bar.txt"]))
