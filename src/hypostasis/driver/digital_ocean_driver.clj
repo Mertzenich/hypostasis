@@ -103,7 +103,7 @@
                   input-stream (:out-stream result)
                   reader (io/reader input-stream)]
               (doall (for [line (line-seq reader)]
-                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line))))))))
+                       (println (str "[" (:name droplet) "]") "[INIT]" (str "[" (get init i) "]") line))))))))
     _)
   (execute [_]
     (let [droplet (ocean/retrieve-droplet @id-atom)
