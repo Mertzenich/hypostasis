@@ -20,28 +20,41 @@
 ;;            + Perform reboots
 ;; Stage #N - Destroy Servers
 
-;; Stage #1
-(defn provision-servers
-  "Provision servers as defined by configuration, returns ..."
-  [config]
-  (let [cfg-servers (config :servers)]
-    cfg-servers))
+;; (defn config-provision
+;;   "Provision servers based upon configuration
+;;   Returns vector of droplet-ids
+;;   i.e. [droplet-id-1 droplet-id-2 ... droplet-id-n]"
+;;   [cfg-vec]
+;;   (let [future-droplets (mapv )]))
+
+;; (defn provision
+;;   "Provision a server
+;;   Takes a remote/Driver implementation, returns driver when complete"
+;;   [driver]
+;;   (.provision driver))
+
+;; (defn initialize
+;;   "Initialize a server
+;;   Takes a remote/Driver implementation, returns driver when complete"
+;;   [driver]
+;;   (.initialize driver))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
   (println args)
   (cond (some #{"--provision"} args)
-        (doseq [i (range (count (get config :servers)))]
-
-          (let [servers (get config :servers)
-                driver (->DigitalOcean (get-in servers [i :name])
-                                       (get-in servers [i :firewall])
-                                       (get-in servers [i :env])
-                                       (get-in servers [i :transfer])
-                                       (get-in servers [i :init]))
-                droplet-id (.provision driver)]
-            (println "Server is warming up...")
-            (Thread/sleep 30000)                            ; Waiting until server is warmed up, TODO: more elegant way of doing this
-            (.initialize driver
-                         droplet-id)))))
+        (->> (mapv #(future (let [driver (->DigitalOcean (:name %)
+                                                         (:firewall %)
+                                                         (:env %)
+                                                         (:transfer %)
+                                                         (:init %)
+                                                         (:exec %)
+                                                         (atom 0))]
+                              (.provision driver)
+                              (println "Server" (:name driver) "is warming up.")
+                              (Thread/sleep 30000)
+                              (.initialize driver)))
+                   (get config :servers))
+             ;; (mapv deref)
+             (mapv #(future (.execute (deref %)))))))

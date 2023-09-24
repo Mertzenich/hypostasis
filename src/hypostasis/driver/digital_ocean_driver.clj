@@ -3,7 +3,8 @@
             [clojure.string :as str]
             [hypostasis.driver.util.digitalocean :as ocean]
             [hypostasis.driver.driver :as remote]
-            [clj-ssh.ssh :as ssh]))
+            [clj-ssh.ssh :as ssh]
+            [babashka.process :as proc]))
 
 (def SSH_KEY "2e:cb:2b:cf:a2:7b:96:2e:b8:35:2b:a8:c4:b1:54:4b")
 
@@ -21,7 +22,15 @@
       ;; (println cmd)
       (= (str/trim (cmd :out)) "true"))))
 
-(defrecord DigitalOcean [name firewall env transfer init]
+(defn exec-on-remote
+  "Execute a process"
+  [remote-ip exec]
+  (proc/process {:err :inherit :shutdown proc/destroy-tree}
+                (str "ssh root@"
+                     remote-ip
+                     " -o \"ServerAliveInterval 60\" \"" exec "\"")))
+
+(defrecord DigitalOcean [name firewall env transfer init exec id-atom]
   remote/Driver
   (provision [_]
     (let [firewall-def (map (fn [rule]
@@ -62,10 +71,11 @@
       (while (not (active-droplet? droplet-id))
         (Thread/sleep 1000))
       (println "Server" name "has been created.")
-      droplet-id))
+      (reset! id-atom droplet-id)
+      _))
 
-  (initialize [_ droplet-id]
-    (let [droplet    (ocean/retrieve-droplet droplet-id)
+  (initialize [_]
+    (let [droplet    (ocean/retrieve-droplet @id-atom)
           droplet-ip (get-in droplet [:networks :v4 0 :ip_address])
           agent      (ssh/ssh-agent {})]
 
@@ -95,11 +105,56 @@
                   input-stream (:out-stream result)
                   reader (io/reader input-stream)]
               (doall (for [line (line-seq reader)]
-                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line)))))))))
-  (execute [_] '...))
+                       (println (str "[" (:name droplet) "]") (str "[" (get init i) "]") line))))))))
+    _)
+  (execute [_]
+    ;; (proc/process "ssh"
+    ;;               (str "root@" (get-in (ocean/retrieve-droplet @id-atom) [:networks :v4 0 :ip_address]))
+    ;;               "-o" "ServerAliveInterval 60"
+    ;;               "bash test.sh")
+    (let [droplet (ocean/retrieve-droplet @id-atom)
+          droplet-ip (get-in droplet [:networks :v4 0 :ip_address])]
+      (with-open [rdr (io/reader (:out (proc/process {:err :inherit
+                                                      :shutdown proc/destroy-tree}
+                                                     (str "ssh root@"
+                                                          droplet-ip
+                                                          " -o \"ServerAliveInterval 60\" \"" exec "\""))))]
 
-(def driver (->DigitalOcean "Carrot"
-                            [{:protocol "tcp", :ports "22"} {:protocol "tcp", :ports "80"}]
-                            ["TOKEN=15633825565" "ENABLED=false" "DEBIAN_FRONTEND=noninteractive"]
-                            ["foo.txt" "bar.txt"]
-                            ["cat foo.txt" "cat bar.txt"]))
+        (binding [*in* rdr]
+          (loop []
+            (when-let [line (read-line)]
+              (println (str "[" (:name droplet) "]") "[EXEC]" line)
+              (recur))))))
+    _))
+
+(defn stream-events
+  "Connect to gerrit server and stream events to stdout"
+  [host port]
+  (let [agent (ssh/ssh-agent {})
+        session (ssh/session agent host {:username "root"
+                                         :strict-host-key-checking :no
+                                         :ServerAliveInterval 60
+                                         :port port})]
+    (ssh/with-connection session
+      (let [result (ssh/ssh session {:cmd "bash test.sh"
+                                     :out :stream})
+            reader (io/reader (:out-stream result))]
+        (doall (map println (line-seq reader)))))))
+
+;; (def s (ssh/ssh (ssh/session (ssh/ssh-agent {}) "143.244.176.164" {:username "root" :strict-host-key-checking :no}) {:cmd "bash test.sh" :out :stream}))
+;;
+;; (with-open [input-stream (:out-stream s)]
+;;                    (let [buffer (byte-array 2048)]
+;;                      (loop [total-bytes-read 0]
+;;                        (let [bytes-read (.read input-stream buffer)]
+;;                          (if (pos? bytes-read)
+;;                            (do
+;;                              (println (String. buffer 0 bytes-read "UTF-8"))
+;;                              (recur (+ total-bytes-read bytes-read)))
+;;                            total-bytes-read)))))
+
+;; (def driver (->DigitalOcean "Carrot"
+;;                             [{:protocol "tcp", :ports "22"} {:protocol "tcp", :ports "80"}]
+;;                             ["TOKEN=15633825565" "ENABLED=false" "DEBIAN_FRONTEND=noninteractive"]
+;;                             ["foo.txt" "bar.txt"]
+;;                             ["cat foo.txt" "cat bar.txt"]))
