@@ -1,6 +1,10 @@
 # Hypostasis
 
-Configure application infrastructure programatically and perform automatic deployment.
+<p align="center">
+  <a href="https://github.com/mertad01/hypostasis">
+    <img alt="Hypostasis" title="Hypostasis" src="logo.png" width="450">
+  </a>
+</p>
 
 ## Installation
 
