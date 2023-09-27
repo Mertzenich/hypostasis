@@ -1,4 +1,4 @@
-# Hypostasis
+<h1 align="center">Hypostasis</h1> <br>
 
 <p align="center">
   <a href="https://github.com/mertad01/hypostasis">
@@ -6,7 +6,11 @@
   </a>
 </p>
 
-## Installation
+<p align="center">
+  Automatically provision and initialize remote servers through user-defined configuration files.
+</p>
+
+## Introduction
 
 FIXME
 
