@@ -1,36 +1,37 @@
-<h1 align="center">Hypostasis</h1> <br>
+# Hypostasis
 
-<p align="center">
-  <a href="https://github.com/mertad01/hypostasis">
-    <img alt="Hypostasis" title="Hypostasis" src="logo.png" width="450">
-  </a>
-</p>
+![Hypostasis](./logo.png)
 
-<p align="center">
-  Automatically provision and initialize remote servers through user-defined configuration files.
-</p>
+Automatically provision and initialize remote servers through user-defined configuration
+files.
 
 ## Introduction
 
-FIXME
+> Hypostasis signifies a particular substance as it is in its completeness.
+> --Saint Thomas Aquinas, Summa Theologica, Tertia pars q.2 a.3 ad 2
+
+Hypostasis allows you to unify a set of remote resources under a single set of configuration
+files. For each server you would like to provision you can provide firewall rules,
+environment variables, files to transfer, initialization commands and finally a script
+to be executed remotely. You can use built-in server provider drivers, i.e. Digital
+Ocean, or you can write your own to support any third-party server provider.
 
 ## Usage
 
-FIXME: explanation
+Execute the latest jar file using Java 17 without any arguments to generate the default file structure.
 
-    $ java -jar hypostasis-0.1.0-standalone.jar [args]
+``` sh
+java -jar hypostasis-0.1.0-standalone.jar
+```
 
-## Options
+## Supported Providers
 
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
+- [x] Digital Ocean
+- [ ] Vultr
+- [ ] Linode
+- [ ] Hetzner
+- [ ] Microsoft Azure
+- [ ] Amazon Web Services
 
 ## License
 
