@@ -3,6 +3,7 @@
             [hypostasis.driver.digital-ocean-driver :refer [->DigitalOcean]]
             [hypostasis.driver.driver :as remote]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
             [babashka.fs :as fs])
   ;; (:import [hypostasis.driver.digitaloceandriver DigitalOcean])
@@ -23,15 +24,18 @@
 (defn- get-server-config
   "Access a server directory's configuration file"
   [dir]
-  (edn/read-string (slurp (str dir "/server.edn"))))
+  (assoc (edn/read-string (slurp (str dir "/server.edn")))
+         :name
+         (second (str/split "servers/default" #"/"))))
 
 (defn- fetch-servers
   "Fetch user-defined servers"
   []
   (map get-server-config (get-servers-list)))
 
-(def config
+(defn get-servers
   "Server configuration"
+  []
   (fetch-servers))
 
 ;; Stage #1 - Provision Servers
@@ -79,7 +83,7 @@
                         (Thread/sleep 30000)
                         (.initialize driver)))
              ;; (get config :servers)
-             config)
+             (get-servers))
              ;; (mapv deref)
        (mapv #(future (.execute (deref %))))))
 
@@ -127,7 +131,7 @@
   ;;                                   :exec "cowsay <word.txt"}]}))
   (let [opts (parse-opts args cli-options)]
     (condp some (:arguments opts)
-      #{"init"} :>> (setup)
+      #{"init"} (setup)
       #{"run"} (launch)
       nil))
   ;; (cond (= nil args)

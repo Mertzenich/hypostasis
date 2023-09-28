@@ -94,7 +94,8 @@
               (ssh/sftp channel {} :cd "/root")
               (doseq [i (range (count transfer))]
                 (let [file-name (get transfer i)
-                      file-path (str "resources/" file-name)]
+                      file-path (str "servers/" name "/" file-name)]
+                  (println file-name file-path)
                   (ssh/sftp channel {} :put file-path file-name)))))
 
             ;; Perform initialization
