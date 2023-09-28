@@ -1,0 +1,19 @@
+{;; Human readable server name (used during provisioning)
+ :name "Name"
+ ;; Inbound firewall rules array
+ :firewall [{:protocol "tcp" :ports "22"}
+            {:protocol "tcp" :ports "80"}]
+ ;; Define environmental variables for the remote server
+ :env ["TOKEN=15633825565"
+       "ENABLED=false"
+       "DEBIAN_FRONTEND=noninteractive"]
+ ;; Files to transfer prior to initialization (relative to server path)
+ :transfer ["toinstall.txt"
+            "word.txt"]
+ ;; Initialization commands for software installs, updates, etc.
+ :init ["echo Token: $TOKEN"
+        "echo Enabled: $ENABLED"
+        "xargs apt-get -y <toinstall.txt"]
+ ;; apt-get update -y && apt-get -y upgrade
+ ;; Command to run end software on remote
+ :exec "cowsay <word.txt"}

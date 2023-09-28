@@ -1,0 +1,13 @@
+{:name "Default"
+ :firewall [{:protocol "tcp" :ports "22"}
+            {:protocol "tcp" :ports "80"}]
+ :env ["TOKEN=15633825565"
+       "ENABLED=false"
+       "DEBIAN_FRONTEND=noninteractive"]
+ :transfer ["toinstall.txt"
+            "word.txt"]
+ :init ["echo Token: $TOKEN"
+        "echo Enabled: $ENABLED"
+        "apt-get -y install cowsay"
+        "xargs apt-get -y <toinstall.txt"]
+ :exec "cowsay <word.txt"}

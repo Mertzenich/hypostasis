@@ -3,9 +3,11 @@
   :url "https://github.com/mertad01/hypostasis"
   :license {}
   :dependencies [[org.clojure/clojure "1.11.1"]
+                 [org.clojure/tools.cli "1.0.219"]
                  [clj-http "3.12.3"]
                  [org.clojure/data.json "2.4.0"]
                  [babashka/process "0.5.21"]
+                 [babashka/fs "0.4.19"]
                  [org.clj-commons/clj-ssh "0.6.2"]]
   :main ^:skip-aot hypostasis.core
   :target-path "target/%s"
