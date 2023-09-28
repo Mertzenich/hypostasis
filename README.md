@@ -18,10 +18,29 @@ Ocean, or you can write your own to support any third-party server provider.
 
 ## Usage
 
-Execute the latest jar file using Java 17 without any arguments to generate the default file structure.
+Generate an example starting directory by using the `init` argument:
 
 ``` sh
-java -jar hypostasis-0.1.0-standalone.jar
+java -jar hypostasis*.jar
+```
+
+You should now have the default structure:
+
+``` sh
+├── config.edn
+├── hypostasis.jar
+└── servers
+    └── default
+        ├── server.edn
+        ├── toinstall.txt
+        └── word.txt
+```
+
+After ensuring that you have added your SSH key to your ssh-agent, set the TOKEN
+environmental variable and use the `run` argument to launch the server:
+
+``` sh
+java -jar hypostasis*.jar run
 ```
 
 ## Supported Providers
