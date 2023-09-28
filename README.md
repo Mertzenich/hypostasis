@@ -8,6 +8,7 @@ files.
 ## Introduction
 
 > Hypostasis signifies a particular substance as it is in its completeness.
+>
 > --Saint Thomas Aquinas, Summa Theologica, Tertia pars q.2 a.3 ad 2
 
 Hypostasis allows you to unify a set of remote resources under a single set of configuration
