@@ -9,29 +9,25 @@
   ;; (:import [hypostasis.driver.digitaloceandriver DigitalOcean])
   (:gen-class))
 
-(defn- get-servers-list
+(defn list-servers
   "Return list of all server directories"
-  []
-  (filter #(.isDirectory (io/file %)) (map str (babashka.fs/list-dir "servers"))))
+  [servers-dir]
+  (filter #(.isDirectory (io/file %))
+          (map str (babashka.fs/list-dir servers-dir))))
 
-(defn- get-server-config
+(defn get-server-config
   "Access a server directory's configuration file"
   [dir]
   (assoc (edn/read-string (slurp (str dir "/server.edn")))
          :name
          (second (str/split "servers/default" #"/"))))
 
-(defn- fetch-servers
-  "Fetch user-defined servers"
-  []
-  (map get-server-config (get-servers-list)))
-
 (defn get-servers
   "Server configuration"
   []
-  (fetch-servers))
+  (map get-server-config (list-servers "servers")))
 
-(defn- launch
+(defn launch
   "Automatically provision, initialize, and execute every server in the configuration"
   []
   (->> (mapv #(future (let [driver (->DigitalOcean (:name %)
@@ -48,29 +44,32 @@
              (get-servers))
        (mapv #(future (.execute (deref %))))))
 
-(defn- create-default-config
+(defn create-default-config
   "Create default global configuration"
-  []
-  (spit "config.edn"
+  [dir]
+  (spit (str dir "/config.edn")
         (slurp (io/resource "config.edn"))))
 
-(defn- create-default-server
+(defn create-default-server
   "Create default server configuration"
-  []
-  (.mkdirs (io/file "servers/default"))
+  [dir]
+  (.mkdirs (io/file (str dir "/servers/default")))
   (doall
-   (map #(spit % (slurp (io/resource %)))
+   (map #(spit (str dir "/" %) (slurp (io/resource %)))
         (vector "servers/default/server.edn" "servers/default/toinstall.txt" "servers/default/word.txt"))))
 
-(defn- setup
+(defn setup
   "Setup initial project structure"
-  []
-  (cond (not (.exists (io/file "servers")))
-        (do (println "Creating config.edn")
-            (create-default-config)))
-  (cond (not (.exists (io/file "servers")))
-        (do (println "Creating servers directory")
-            (create-default-server))))
+  [dir]
+  (let [config-edn (str dir "/config.edn")
+        servers-dir (str dir "/servers")]
+    (cond (not (.exists (io/file config-edn)))
+          (do (println "Creating config.edn")
+              (create-default-config dir)))
+    (cond (not (.exists (io/file servers-dir)))
+          (do (println "Creating servers directory")
+              (create-default-server dir)))
+    [config-edn servers-dir]))
 
 (def cli-options
   [["-h" "--help"]])
@@ -80,7 +79,6 @@
   [& args]
   (let [opts (parse-opts args cli-options)]
     (condp some (:arguments opts)
-      #{"init"} (setup)
+      #{"init"} (setup ".")
       #{"run"} (launch)
-      nil))
-  )
+      nil)))
