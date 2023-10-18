@@ -1,0 +1,3 @@
+{:name "DigitalOcean"
+ :version "0.0.1"
+ :main 'hypostasis.plugins.digitalocean.digitalocean}

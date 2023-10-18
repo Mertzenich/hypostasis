@@ -1,48 +1,18 @@
 (ns hypostasis.core
   (:require [clojure.edn :as edn]
-            [hypostasis.driver.digital-ocean-driver :refer [->DigitalOcean]]
-            [hypostasis.driver.driver :as remote]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
-            [babashka.fs :as fs])
+            [clj-ssh.ssh :as ssh]
+            [babashka.fs :as fs]
+            [babashka.process :as proc]
+            [hypostasis.plugins.digitalocean.digitalocean :as do])
   ;; (:import [hypostasis.driver.digitaloceandriver DigitalOcean])
   (:gen-class))
 
-(defn list-servers
-  "Return list of all server directories"
-  [servers-dir]
-  (filter #(.isDirectory (io/file %))
-          (map str (babashka.fs/list-dir servers-dir))))
-
-(defn get-server-config
-  "Access a server directory's configuration file"
-  [dir]
-  (assoc (edn/read-string (slurp (str dir "/server.edn")))
-         :name
-         (second (str/split "servers/default" #"/"))))
-
-(defn get-servers
-  "Server configuration"
-  []
-  (map get-server-config (list-servers "servers")))
-
-(defn launch
-  "Automatically provision, initialize, and execute every server in the configuration"
-  []
-  (->> (mapv #(future (let [driver (->DigitalOcean (:name %)
-                                                   (:firewall %)
-                                                   (:env %)
-                                                   (:transfer %)
-                                                   (:init %)
-                                                   (:exec %)
-                                                   (atom 0))]
-                        (.provision driver)
-                        (println "Server" (:name driver) "is warming up.")
-                        (Thread/sleep 30000)
-                        (.initialize driver)))
-             (get-servers))
-       (mapv #(future (.execute (deref %))))))
+;;
+;; SETUP SEQUENCE
+;;
 
 (defn create-default-config
   "Create default global configuration"
@@ -70,6 +40,100 @@
           (do (println "Creating servers directory")
               (create-default-server dir)))
     [config-edn servers-dir]))
+
+;;
+;; LAUNCH SEQUENCE
+;;
+
+(defn list-servers
+  "Return list of all server directories"
+  [servers-dir]
+  (filter #(.isDirectory (io/file %))
+          (map str (babashka.fs/list-dir servers-dir))))
+
+(defn get-server-config
+  "Access a server directory's configuration file"
+  [dir]
+  (assoc (edn/read-string (slurp (str dir "/server.edn")))
+         :name
+         (second (str/split dir #"/"))))
+
+(defn get-servers
+  "Server configuration"
+  []
+  (map get-server-config (list-servers "servers")))
+
+(defn initialize
+  "Initialize a server"
+  [driver]
+  (let [agent (ssh/ssh-agent {})
+        ip (.ip driver)
+        config (:config driver)
+        name (:name config)
+        env (:env config)
+        transfer (:transfer config)
+        init (:init config)]
+    (println "Initializing server...")
+    ;; Set Environmental Variables
+    (let [session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+      (ssh/with-connection session
+        (doseq [i (range (count env))]
+          (ssh/ssh session {:cmd (str "echo export "
+                                      (get env i)
+                                      " >>/etc/environment") :out :stream}))))
+    (let [session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+      (ssh/with-connection session
+        (println "TRANSFER" ":" transfer)
+        (let [channel (ssh/ssh-sftp session)]
+          (ssh/with-channel-connection channel
+            ;; TODO: Add support for non-root accounts
+            (ssh/sftp channel {} :cd "/root")
+            (doseq [i (range (count transfer))]
+              (let [file-name (get transfer i)
+                    file-path (str "servers/" name "/" file-name)]
+                (println file-name file-path)
+                (ssh/sftp channel {} :put file-path file-name)))))
+            ;; Perform initialization
+        (doseq [i (range (count init))]
+          (let [result (ssh/ssh session {:cmd (get init i) :out :stream})
+                input-stream (:out-stream result)
+                reader (io/reader input-stream)]
+            (doall (for [line (line-seq reader)]
+                     (println (str "[" name "]") "[INIT]" (str "[" (get init i) "]") line))))))))
+  driver)
+
+
+(defn execute
+  "Execute remote command"
+  [driver]
+  (let [ip (.ip driver)
+        config (:config driver)
+        exec (:exec config)
+        name (:name config)
+        process (proc/process {:err :inherit
+                               :shutdown proc/destroy-tree}
+                              (str "ssh root@"
+                                   ip
+                                   " -o \"ServerAliveInterval 60\" \"" exec "\""))]
+    (with-open [rdr (io/reader (:out process))]
+      (binding [*in* rdr]
+        (loop []
+          (when-let [line (read-line)]
+            (println (str "[" name "]") "[EXEC]" line)
+            (recur))))))
+  driver)
+
+(defn launch
+  "Automatically provision, initialize, and execute every server in the configuration"
+  []
+  (->> (mapv #(future (let [driver (do/create %)]
+                        (.provision driver)
+                        (println "Server" (:name %) "is warming up.")
+                        (Thread/sleep 30000)
+                        (initialize driver)
+                        driver))
+             (get-servers))
+       (mapv #(future (execute (deref %))))))
 
 (def cli-options
   [["-h" "--help"]])
