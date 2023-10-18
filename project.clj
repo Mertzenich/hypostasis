@@ -8,7 +8,8 @@
                  [org.clj-commons/clj-ssh "0.6.2"]
                  [clj-http "3.12.3"]
                  [babashka/process "0.5.21"]
-                 [babashka/fs "0.4.19"]]
+                 [babashka/fs "0.4.19"]
+                 [clj-commons/pomegranate "1.2.23"]]
   :main ^:skip-aot hypostasis.core
   :target-path "target/%s"
   :plugins [[lein-codox "0.10.8"]]
