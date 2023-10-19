@@ -6,8 +6,7 @@
             [clj-ssh.ssh :as ssh]
             [babashka.fs :as fs]
             [babashka.process :as proc]
-            [hypostasis.plugins.digitalocean.digitalocean :as do])
-  ;; (:import [hypostasis.driver.digitaloceandriver DigitalOcean])
+            [hypostasis.loader :as loader])
   (:gen-class))
 
 ;;
@@ -102,7 +101,6 @@
                      (println (str "[" name "]") "[INIT]" (str "[" (get init i) "]") line))))))))
   driver)
 
-
 (defn execute
   "Execute remote command"
   [driver]
@@ -126,8 +124,9 @@
 (defn launch
   "Automatically provision, initialize, and execute every server in the configuration"
   []
-  (->> (mapv #(future (let [driver (do/create %)]
-                        (.provision driver)
+  (->> (mapv #(future (let [plugin (loader/load-plugin "plugins" ((:plugin %) (loader/list-plugins "plugins")))
+                            driver ((:create plugin) %)]
+                        ((:provision plugin) driver)
                         (println "Server" (:name %) "is warming up.")
                         (Thread/sleep 30000)
                         (initialize driver)

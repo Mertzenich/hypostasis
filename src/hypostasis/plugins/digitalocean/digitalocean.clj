@@ -131,6 +131,11 @@
   [config]
   (->DigitalOcean config (atom {})))
 
+(defn ip
+  "Access the ip address"
+  [driver]
+  (.ip driver))
+
 (defn provision
   "Provision the server"
   [driver]
