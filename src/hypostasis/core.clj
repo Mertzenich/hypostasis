@@ -124,15 +124,16 @@
 (defn launch
   "Automatically provision, initialize, and execute every server in the configuration"
   []
-  (->> (mapv #(future (let [plugin (loader/load-plugin "plugins" ((:plugin %) (loader/list-plugins "plugins")))
-                            driver ((:create plugin) %)]
-                        ((:provision plugin) driver)
-                        (println "Server" (:name %) "is warming up.")
-                        (Thread/sleep 30000)
-                        (initialize driver)
-                        driver))
-             (get-servers))
-       (mapv #(future (execute (deref %))))))
+  (let [plugin-list (loader/list-plugins "plugins")]
+    (->> (mapv #(future (let [plugin (loader/load-plugin "plugins" ((:plugin %) plugin-list))
+                              driver ((:create plugin) %)]
+                          ((:provision plugin) driver)
+                          (println "Server" (:name %) "is warming up.")
+                          (Thread/sleep 30000)
+                          (initialize driver)
+                          driver))
+               (get-servers))
+         (mapv #(future (execute (deref %)))))))
 
 (def cli-options
   [["-h" "--help"]])
