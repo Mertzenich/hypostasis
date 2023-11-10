@@ -116,17 +116,17 @@
 (defn add-server-addresses
   "Add every server's address to the environment"
   [drivers]
-  (doseq [d drivers]
-    (let [driver @d
-          agent (ssh/ssh-agent {})
-          ip (.ip driver)
-          env (get-drivers-ips drivers)
-          session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
-      (ssh/with-connection session
-        (doseq [i (range (count env))]
-          (ssh/ssh session {:cmd (str "echo export "
-                                      (get env i)
-                                      " >>/etc/environment") :out :stream})))))
+  (let [env (get-drivers-ips drivers)]
+    (doseq [d drivers]
+      (let [driver @d
+            agent (ssh/ssh-agent {})
+            ip (.ip driver)
+            session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+        (ssh/with-connection session
+          (doseq [i (range (count env))]
+            (ssh/ssh session {:cmd (str "echo export "
+                                        (get env i)
+                                        " >>/etc/environment") :out :stream}))))))
 
   drivers)
 
