@@ -101,6 +101,35 @@
                      (println (str "[" name "]") "[INIT]" (str "[" (get init i) "]") line))))))))
   driver)
 
+(defn get-drivers-ips
+  "Access ips of each driver"
+  [drivers]
+  (println "Type Drivers: " (type drivers))
+  (println "Drivers: " drivers)
+  (let [ips (atom [])]
+    (doseq [d drivers]
+      ;; (swap! ips assoc (:name (:config @d)) (.ip @d))
+      (swap! ips conj (str (:name (:config @d)) "=" (.ip @d))))
+    (println "IPS: " @ips)
+    @ips))
+
+(defn add-server-addresses
+  "Add every server's address to the environment"
+  [drivers]
+  (doseq [d drivers]
+    (let [driver @d
+          agent (ssh/ssh-agent {})
+          ip (.ip driver)
+          env (get-drivers-ips drivers)
+          session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+      (ssh/with-connection session
+        (doseq [i (range (count env))]
+          (ssh/ssh session {:cmd (str "echo export "
+                                      (get env i)
+                                      " >>/etc/environment") :out :stream})))))
+
+  drivers)
+
 (defn execute
   "Execute remote command"
   [driver]
@@ -133,6 +162,7 @@
                           (initialize driver)
                           driver))
                (get-servers))
+         (add-server-addresses)
          (mapv #(future (execute (deref %)))))))
 
 (def cli-options
