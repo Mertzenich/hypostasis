@@ -127,7 +127,17 @@
             (ssh/ssh session {:cmd (str "echo export "
                                         (get env i)
                                         " >>/etc/environment") :out :stream}))))))
+  drivers)
 
+(defn update-server-firewalls
+  "Add every server's address to the environment"
+  [drivers]
+  (let [ips (get-drivers-ips drivers)]
+    (doseq [ip ips]
+      (doseq [d drivers]
+        (let [driver @d]
+          ;; TODO: Add .firewall-add to the driver specification and implementations
+          (.firewall-add driver ip)))))
   drivers)
 
 (defn execute
@@ -163,6 +173,7 @@
                           driver))
                (get-servers))
          (add-server-addresses)
+         (update-server-firewalls)
          (mapv #(future (execute (deref %)))))))
 
 (def cli-options
