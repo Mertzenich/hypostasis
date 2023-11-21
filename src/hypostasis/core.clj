@@ -110,7 +110,6 @@
     (doseq [d drivers]
       ;; (swap! ips assoc (:name (:config @d)) (.ip @d))
       (swap! ips conj (str (:name (:config @d)) "=" (.ip @d))))
-    (println "IPS: " @ips)
     @ips))
 
 (defn add-server-addresses
@@ -135,9 +134,10 @@
   (let [ips (get-drivers-ips drivers)]
     (doseq [ip ips]
       (doseq [d drivers]
-        (let [driver @d]
-          ;; TODO: Add .firewall-add to the driver specification and implementations
-          (.firewall-add driver ip)))))
+        (let [driver @d
+              ip-clean (second (str/split ip #"="))]
+          (.firewall-add driver {:protocol "tcp", :ports "1-65535", :sources {:addresses [ip-clean]}})
+          (.firewall-add driver {:protocol "udp", :ports "1-65535", :sources {:addresses [ip-clean]}})))))
   drivers)
 
 (defn execute
