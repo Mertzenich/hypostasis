@@ -110,7 +110,6 @@
     (doseq [d drivers]
       ;; (swap! ips assoc (:name (:config @d)) (.ip @d))
       (swap! ips conj (str (:name (:config @d)) "=" (.ip @d))))
-    (println "IPS: " @ips)
     @ips))
 
 (defn add-server-addresses
@@ -127,7 +126,18 @@
             (ssh/ssh session {:cmd (str "echo export "
                                         (get env i)
                                         " >>/etc/environment") :out :stream}))))))
+  drivers)
 
+(defn update-server-firewalls
+  "Add every server's address to the environment"
+  [drivers]
+  (let [ips (get-drivers-ips drivers)]
+    (doseq [ip ips]
+      (doseq [d drivers]
+        (let [driver @d
+              ip-clean (second (str/split ip #"="))]
+          (.firewall-add driver {:protocol "tcp", :ports "1-65535", :sources {:addresses [ip-clean]}})
+          (.firewall-add driver {:protocol "udp", :ports "1-65535", :sources {:addresses [ip-clean]}})))))
   drivers)
 
 (defn execute
@@ -163,6 +173,7 @@
                           driver))
                (get-servers))
          (add-server-addresses)
+         (update-server-firewalls)
          (mapv #(future (execute (deref %)))))))
 
 (def cli-options
