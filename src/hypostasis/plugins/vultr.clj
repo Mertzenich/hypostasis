@@ -163,7 +163,7 @@
           instance-id (get cfg :instance-id)
           firewall-id (get cfg :firewall-id)]
       ;; (info cfg-name "Server Destroyed"))
-    _)
+    _))
   (initialize [_ servers]
     (let [cfg @config
           cfg-name (:name cfg)
