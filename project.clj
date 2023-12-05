@@ -1,4 +1,4 @@
-(defproject hypostasis "0.1.0-SNAPSHOT"
+(defproject hypostasis "0.1.2-SNAPSHOT"
   :description "Programatic application infrastructure configuration and deployment."
   :url "https://github.com/mertad01/hypostasis"
   :license {}

@@ -57,10 +57,126 @@
       config
       (throw (Exception. "Configuration file format invalid.")))))
 
+<<<<<<< HEAD
 (defn list-plugins
   []
   {:DigitalOcean digitalocean/create-instance
    :Vultr vultr/create-instance})
+=======
+(defn initialize
+  "Initialize a server"
+  [driver]
+  (let [agent (ssh/ssh-agent {})
+        ip (.ip driver)
+        config (:config driver)
+        name (:name config)
+        env (:env config)
+        transfer (:transfer config)
+        init (:init config)]
+    (println "Initializing server...")
+    ;; Set Environmental Variables
+    (let [session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+      (ssh/with-connection session
+        (doseq [i (range (count env))]
+          (ssh/ssh session {:cmd (str "echo export "
+                                      (get env i)
+                                      " >>/etc/environment") :out :stream}))))
+    (let [session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+      (ssh/with-connection session
+        (println "TRANSFER" ":" transfer)
+        (let [channel (ssh/ssh-sftp session)]
+          (ssh/with-channel-connection channel
+            ;; TODO: Add support for non-root accounts
+            (ssh/sftp channel {} :cd "/root")
+            (doseq [i (range (count transfer))]
+              (let [file-name (get transfer i)
+                    file-path (str "servers/" name "/" file-name)]
+                (println file-name file-path)
+                (ssh/sftp channel {} :put file-path file-name)))))
+            ;; Perform initialization
+        (doseq [i (range (count init))]
+          (let [result (ssh/ssh session {:cmd (get init i) :out :stream})
+                input-stream (:out-stream result)
+                reader (io/reader input-stream)]
+            (doall (for [line (line-seq reader)]
+                     (println (str "[" name "]") "[INIT]" (str "[" (get init i) "]") line))))))))
+  driver)
+
+(defn get-drivers-ips
+  "Access ips of each driver"
+  [drivers]
+  (println "Type Drivers: " (type drivers))
+  (println "Drivers: " drivers)
+  (let [ips (atom [])]
+    (doseq [d drivers]
+      ;; (swap! ips assoc (:name (:config @d)) (.ip @d))
+      (swap! ips conj (str (:name (:config @d)) "=" (.ip @d))))
+    @ips))
+
+(defn add-server-addresses
+  "Add every server's address to the environment"
+  [drivers]
+  (let [env (get-drivers-ips drivers)]
+    (doseq [d drivers]
+      (let [driver @d
+            agent (ssh/ssh-agent {})
+            ip (.ip driver)
+            session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})]
+        (ssh/with-connection session
+          (doseq [i (range (count env))]
+            (ssh/ssh session {:cmd (str "echo export "
+                                        (get env i)
+                                        " >>/etc/environment") :out :stream}))))))
+  drivers)
+
+(defn update-server-firewalls
+  "Add every server's address to the environment"
+  [drivers]
+  (let [ips (get-drivers-ips drivers)]
+    (doseq [ip ips]
+      (doseq [d drivers]
+        (let [driver @d
+              ip-clean (second (str/split ip #"="))]
+          (.firewall-add driver {:protocol "tcp", :ports "1-65535", :sources {:addresses [ip-clean]}})
+          (.firewall-add driver {:protocol "udp", :ports "1-65535", :sources {:addresses [ip-clean]}})))))
+  drivers)
+
+(defn execute
+  "Execute remote command"
+  [driver]
+  (let [ip (.ip driver)
+        config (:config driver)
+        exec (:exec config)
+        name (:name config)
+        process (proc/process {:err :inherit
+                               :shutdown proc/destroy-tree}
+                              (str "ssh root@"
+                                   ip
+                                   " -o \"ServerAliveInterval 60\" \"" exec "\""))]
+    (with-open [rdr (io/reader (:out process))]
+      (binding [*in* rdr]
+        (loop []
+          (when-let [line (read-line)]
+            (println (str "[" name "]") "[EXEC]" line)
+            (recur))))))
+  driver)
+
+(defn launch
+  "Automatically provision, initialize, and execute every server in the configuration"
+  []
+  (let [plugin-list (loader/list-plugins "plugins")]
+    (->> (mapv #(future (let [plugin (loader/load-plugin "plugins" ((:plugin %) plugin-list))
+                              driver ((:create plugin) %)]
+                          ((:provision plugin) driver)
+                          (println "Server" (:name %) "is warming up.")
+                          (Thread/sleep 30000)
+                          (initialize driver)
+                          driver))
+               (get-servers))
+         (add-server-addresses)
+         (update-server-firewalls)
+         (mapv #(future (execute (deref %)))))))
+>>>>>>> master
 
 (list-plugins)
 
