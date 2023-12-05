@@ -1,13 +1,24 @@
-{:servers [{:name "Name"
-            :firewall [{:protocol "tcp" :ports "22"}
-                       {:protocol "tcp" :ports "80"}]
-            :env ["TOKEN=15633825565"
-                  "ENABLED=false"
-                  "DEBIAN_FRONTEND=noninteractive"]
-            :transfer ["toinstall.txt"
-                       "word.txt"]
-            :init ["echo Token: $TOKEN"
-                   "echo Enabled: $ENABLED"
-                   "apt-get -y install cowsay"
-                   "xargs apt-get -y <toinstall.txt"]
-            :exec "cowsay <word.txt"}]}
+[{:name :Server
+  :plugin :DigitalOcean
+  :firewall [{:protocol "tcp" :ports "22"} ; No source, assume allow all i.e. 0.0.0.0
+             {:protocol "tcp" :ports "80" :source "192.168.1.1"}
+             {:protocol "udp" :ports "25565" :source :Alt}]
+  :env [["DEBIAN_FRONTEND" "noninteractive"]]
+  :transfer ["hypostasis.jar"]
+  :init ["apt-get -y update"
+         "apt-get -y upgrade"]
+  :exec "echo carrot"
+  :settings {:token "TOKEN HERE"
+             :ssh-key "KEY HERE"}}
+ {:name :Alt
+  :plugin :Vultr
+  :firewall [{:protocol "tcp" :ports "22"} ; No source, assume allow all i.e. 0.0.0.0
+             {:protocol "tcp" :ports "80" :source "192.168.1.1"}
+             {:protocol "udp" :ports "25565" :source :Server}]
+  :env [["DEBIAN_FRONTEND" "noninteractive"]]
+  :transfer ["hypostasis.jar"]
+  :init ["apt-get -y update"
+         "apt-get -y upgrade"]
+  :exec "echo stick"
+  :settings {:token "TOKEN HERE"
+             :ssh-key-id "KEY HERE"}}]
