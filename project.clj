@@ -8,6 +8,8 @@
                  [lambdaisland/kaocha "1.87.1366"]
                  [org.clj-commons/clj-ssh "0.6.2"]
                  [clj-http "3.12.3"]
+                 [com.taoensso/timbre "6.3.1"]
+                 [org.tcrawley/dynapath "1.1.0"]
                  [babashka/process "0.5.21"]
                  [babashka/fs "0.4.19"]
                  [clj-commons/pomegranate "1.2.23"]]
