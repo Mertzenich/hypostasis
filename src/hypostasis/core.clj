@@ -1,7 +1,9 @@
 (ns hypostasis.core
   (:require [clojure.edn :as edn]
             [taoensso.timbre :as timbre]
+            [clojure.java.io :as io]
             [hypostasis.loader :as loader]
+            [clojure.tools.cli :refer [parse-opts]]
             [hypostasis.plugins.digitalocean :as digitalocean]
             [hypostasis.plugins.vultr :as vultr])
   (:gen-class))
@@ -62,44 +64,49 @@
   {:DigitalOcean digitalocean/create-instance
    :Vultr vultr/create-instance})
 
-(list-plugins)
+(def cli-options
+  [["-h" "--help"]])
+
+(defn setup
+  "Setup initial project structure"
+  [dir]
+  (let [config-edn (str dir "/config.edn")
+        app-py (str dir "/app.py")
+        main-py (str dir "/main.py")]
+    (cond (not (.exists (io/file config-edn)))
+          (do (println "Creating config.edn")
+              (spit config-edn
+                    (slurp (io/resource "config.edn")))))
+    (cond (not (.exists (io/file app-py)))
+          (do (println "Creating example app.py")
+              (spit app-py
+                    (slurp (io/resource "app.py")))))
+    (cond (not (.exists (io/file main-py)))
+          (do (println "Creating example main.py")
+              (spit main-py
+                    (slurp (io/resource "main.py")))))
+    true))
 
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
-  (let [configs (config-get)
-        ;; list-plugins (loader/list-plugins "plugins")
-        ;; servers (map #(do/->DigitalOcean (atom %)) configs)
-        ;; servers (map #((loader/load-plugin "plugins" ((:plugin %) list-plugins)) %)
-        ;;              configs)
-        servers (mapv #(((:plugin %) (list-plugins)) %) configs)
-        server-config-map (reduce #(assoc %1 (:name @(:config %2)) %2)
-                                  {}
-                                  servers)]
-    (let [runtime (Runtime/getRuntime)]
-      (.addShutdownHook runtime
-                        (Thread. (fn []
-                                   (doseq [s servers] (.destroy s))))))
-    (doseq [s servers]
-      (.provision s))
-    (doseq [s servers]
-      (.firewall-update s server-config-map))
-    (doseq [s servers]
-      (.initialize s servers))
-    (mapv #(future (.execute %)) servers)
-    ;; (doseq [s servers]
-    ;;   (.execute s))
-    ))
-
-;; (def cfg (config-get))
-;; (:plugin (first cfg))
-;; (def list-plugins (loader/list-plugins "plugins"))
-;; ((:plugin (first cfg)) list-plugins)
-;; (loader/load-plugin "plugins" ((:plugin (first cfg)) list-plugins))
-
-;; (let [list-plugins (loader/list-plugins "plugins")]
-;;   (map #((loader/load-plugin "plugins" ((:plugin %) list-plugins)) %) cfg)
-;;   )
-
-;; (.provision (first *1))
-;; (.destroy *1)
+  (let [opts (parse-opts args cli-options)]
+    (condp some (:arguments opts)
+      #{"init"} (setup ".")
+      #{"run"} (let [configs (config-get)
+                     servers (mapv #(((:plugin %) (list-plugins)) %) configs)
+                     server-config-map (reduce #(assoc %1 (:name @(:config %2)) %2)
+                                               {}
+                                               servers)]
+                 (let [runtime (Runtime/getRuntime)]
+                   (.addShutdownHook runtime
+                                     (Thread. (fn []
+                                                (doseq [s servers] (.destroy s))))))
+                 (doseq [s servers]
+                   (.provision s))
+                 (doseq [s servers]
+                   (.firewall-update s server-config-map))
+                 (doseq [s servers]
+                   (.initialize s servers))
+                 (mapv #(future (.execute %)) servers))
+      nil)))
