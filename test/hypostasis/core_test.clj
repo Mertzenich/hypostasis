@@ -1,6 +1,6 @@
 (ns hypostasis.core-test
   (:require [clojure.test :refer :all]
-            [hypostasis.core :refer :all]
+            [hypostasis.core :refer [setup]]
             [clojure.java.io :as io]
             [babashka.fs :as fs])
   (:import [java.io File]))
@@ -29,22 +29,12 @@
   "Checks for correct setup structure"
   [test-dir]
   (let [config-edn (str test-dir "/config.edn")
-        servers-dir (str test-dir "/servers")
-        default-server (str servers-dir "/default")]
+        app-py (str test-dir "/app.py")
+        main-py (str test-dir "/main.py")]
     (is (.exists (io/file config-edn)))
     (is (= false (.isDirectory (io/file config-edn))))
-          ;; Servers directory creation
-    (is (.exists (io/file servers-dir)))
-    (is (= true (.isDirectory (io/file servers-dir))))
-          ;; Default server created
-    (is (= true (.exists (io/file default-server))))
-    (is (= true (.isDirectory (io/file default-server))))
-    (is (= true (.exists (io/file (str default-server "/server.edn")))))
-    (is (= false (.isDirectory (io/file (str default-server "/server.edn")))))
-    (is (= true (.exists (io/file (str default-server "/word.txt")))))
-    (is (= false (.isDirectory (io/file (str default-server "/word.txt")))))
-    (is (= true (.exists (io/file (str default-server "/toinstall.txt")))))
-    (is (= false (.isDirectory (io/file (str default-server "/toinstall.txt")))))))
+    (is (= false (.isDirectory (io/file app-py))))
+    (is (= false (.isDirectory (io/file main-py))))))
 
 (deftest setup-test
   (let [test-dir (str (mk-tmp-dir!))]
@@ -52,19 +42,4 @@
       (testing "with nothing, without servers dir or config.edn"
         (let [setup-result (with-out-str (setup test-dir))]
           (setup-test-correct-structure test-dir)
-          (is (= setup-result "Creating config.edn\nCreating servers directory\n"))))
-      (testing "with config.edn and servers dir"
-        (let [setup-result (with-out-str (setup test-dir))]
-          (setup-test-correct-structure test-dir)
-          (is (= "" setup-result))))
-      ;; TODO
-      (testing "with servers dir, without config.edn"
-        (.delete (io/file (str test-dir "/config.edn")))
-        (let [setup-result (with-out-str (setup test-dir))]
-          (setup-test-correct-structure test-dir)
-          (is (= "Creating config.edn\n" setup-result))))
-      (testing "with config.edn, without servers dir"
-        (fs/delete-tree (str test-dir "/servers"))
-        (let [setup-result (with-out-str (setup test-dir))]
-          (setup-test-correct-structure test-dir)
-          (is (= "Creating servers directory\n" setup-result)))))))
+          (is (= setup-result "Creating config.edn\nCreating example app.py\nCreating example main.py\n")))))))
