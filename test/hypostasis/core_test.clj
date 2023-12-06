@@ -1,8 +1,9 @@
 (ns hypostasis.core-test
   (:require [clojure.test :refer :all]
-            [hypostasis.core :refer [setup]]
+            [hypostasis.core :refer [setup list-plugins config-valid?]]
             [clojure.java.io :as io]
-            [babashka.fs :as fs])
+            [hypostasis.plugins.digitalocean :as digitalocean]
+            [hypostasis.plugins.vultr :as vultr])
   (:import [java.io File]))
 
 ;; Credit to samaaron, micahasmith, and wilkerlucio for mk-tmp-dir!
@@ -43,3 +44,35 @@
         (let [setup-result (with-out-str (setup test-dir))]
           (setup-test-correct-structure test-dir)
           (is (= setup-result "Creating config.edn\nCreating example app.py\nCreating example main.py\n")))))))
+
+(deftest list-plugins-test
+  (testing "List Plugins"
+    (is (= (list-plugins) {:DigitalOcean digitalocean/create-instance :Vultr vultr/create-instance}))))
+
+(deftest config-valid?-test
+  (let [config [{:name :Primary
+                 :plugin :DigitalOcean
+                 :firewall [{:protocol "tcp" :ports "22"} ; No source, assume allow all i.e. 0.0.0.0
+                            {:protocol "tcp" :ports "80"}
+                            {:protocol "tcp" :ports "8000" :source :Alt}]
+                 :env [["DEBIAN_FRONTEND" "noninteractive"]]
+                 :transfer ["main.py"]
+                 :init ["apt-get install -y python3-fastapi python3-uvicorn"
+                        "ufw allow 8000/tcp"]
+                 :exec "python3 -m uvicorn main:app --host 0.0.0.0"
+                 :settings {:token "TOKEN HERE"
+                            :ssh-key "SSH KEY HERE"}}
+                {:name :Alt
+                 :plugin :Vultr
+                 :firewall [{:protocol "tcp" :ports "22"}
+                            {:protocol "tcp" :ports "80"}
+                            {:protocol "tcp" :ports "8000"}]
+                 :env [["DEBIAN_FRONTEND" "noninteractive"]]
+                 :transfer ["app.py"]
+                 :init ["apt-get install -y python3-flask"
+                        "ufw allow 8000/tcp"]
+                 :exec "flask run --host 0.0.0.0 --port 8000"
+                 :settings {:token "TOKEN HERE"
+                            :ssh-key-id "SSH KEY HERE"}}]]
+    (testing "Config validation"
+      (is (config-valid? config) true))))
