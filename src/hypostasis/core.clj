@@ -2,13 +2,13 @@
   (:require [clojure.edn :as edn]
             [taoensso.timbre :as timbre]
             [clojure.java.io :as io]
-            [hypostasis.loader :as loader]
             [clojure.tools.cli :refer [parse-opts]]
             [hypostasis.plugins.digitalocean :as digitalocean]
             [hypostasis.plugins.vultr :as vultr])
   (:gen-class))
 
 (defmacro info
+  "Simpligy timbre/info logs in the server format"
   [name & args]
   `(timbre/info (str "[" ~name "]") ~@args))
 
@@ -18,7 +18,9 @@
   (= (type v) t))
 
 (defn config-entry-verify
-  "Returns true if server configuration 'sc' contains correctly typed values"
+  "Takes an individual server definition.
+  Returns true if server configuration 'sc'
+  contains correctly typed values"
   [sc]
   (and
    ;; Name: Keyword
@@ -49,10 +51,13 @@
    (type-eq? (:settings sc) clojure.lang.PersistentArrayMap)))
 
 (defn config-valid?
+  "Takes a config and returns true if every individual
+  server configuration is valid."
   [config]
   (every? config-entry-verify config))
 
 (defn config-get
+  "Read config.edn in the current directory and check for validity"
   []
   (let [config (edn/read-string (slurp "config.edn"))]
     (if (config-valid? config)
@@ -60,6 +65,8 @@
       (throw (Exception. "Configuration file format invalid.")))))
 
 (defn list-plugins
+  "Return a map containing all of the plugin keyword names
+  matched to their create-instance functions"
   []
   {:DigitalOcean digitalocean/create-instance
    :Vultr vultr/create-instance})
@@ -68,7 +75,9 @@
   [["-h" "--help"]])
 
 (defn setup
-  "Setup initial project structure"
+  "Setup initial project structure using jar resources.
+  Takes a string 'dir' and places configuration files in
+  that location."
   [dir]
   (let [config-edn (str dir "/config.edn")
         app-py (str dir "/app.py")
