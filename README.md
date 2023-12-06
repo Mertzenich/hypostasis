@@ -19,26 +19,27 @@ Ocean, or you can write your own to support any third-party server provider.
 
 ## Usage
 
-Generate an example starting directory by using the `init` argument:
+Generate an example starting project by using the `init` command:
 
 ``` sh
-java -jar hypostasis*.jar
+java -jar hypostasis*.jar init
 ```
 
 You should now have the default structure:
 
 ``` sh
-├── config.edn
 ├── hypostasis.jar
-└── servers
-    └── default
-        ├── server.edn
-        ├── toinstall.txt
-        └── word.txt
+├── config.edn
+├── app.py
+└── main.py
 ```
 
-After ensuring that you have added your SSH key to your ssh-agent, set the TOKEN
-environmental variable and use the `run` argument to launch the server:
+Edit the `config.edn` file to include the proper settings for each driver.
+In the default you will need to provide your API tokens and SSH public key
+information for Vultr and Digital Ocean.
+
+After you have configured your remote servers, use the `run` command to launch
+your servers:
 
 ``` sh
 java -jar hypostasis*.jar run
@@ -47,7 +48,7 @@ java -jar hypostasis*.jar run
 ## Supported Providers
 
 - [x] Digital Ocean
-- [ ] Vultr
+- [x] Vultr
 - [ ] Linode
 - [ ] Hetzner
 - [ ] Microsoft Azure
