@@ -31,6 +31,7 @@
                         :ssh_keys [ssh-key]}))
 
 (defn create-firewall
+  "Create a new digital ocean firewall"
   [token name droplet-id inbound-rules]
   (util/create-firewall token
                         {:name name
@@ -50,6 +51,7 @@
                                            :destinations {:addresses ["0.0.0.0/0" "::/0"]}}]}))
 
 (defn update-firewall
+  "Perform an update to a digital ocean firewall"
   [token firewall-id new-rules]
   (let [firewall (util/retrieve-firewall token firewall-id)]
     (util/update-firewall token firewall-id {:name (:name firewall)
@@ -59,7 +61,7 @@
                                              :outbound_rules (:outbound_rules firewall)})))
 
 (defn env-add
-  "Add server env configuration to remote server"
+  "Add server env configuration to remote server via ssh"
   [ip env]
   (let [agent (ssh/ssh-agent {})
         session (ssh/session agent ip {:username "root" :strict-host-key-checking :no})
@@ -70,7 +72,7 @@
       (ssh/ssh session {:cmd env-cmd :out :stream}))))
 
 (defn transfer
-  "Transfer files to remote server"
+  "Transfer files to remote server via scp"
   [ip files]
   (let [quoted-files (map #(str "\"" % "\"") files)
         files-str (str/join " " quoted-files)]
@@ -79,7 +81,7 @@
                   (str "scp -r " files-str " root@" ip ":~"))))
 
 (defn run
-  "Perform remote command"
+  "Perform remote command via ssh"
   [name prefix ip cmd]
   (let [process (proc/process {:err :inherit
                                :shutdown proc/destroy-tree}
@@ -94,7 +96,7 @@
             (recur)))))))
 
 (defn init
-  "Perform remote initialization"
+  "Perform remote initialization via ssh"
   [name ip init]
   ;; (let [cmd (str/join ";" init)]
   ;;   (run name "INIT" ip cmd))
@@ -194,5 +196,7 @@
       (info cfg-name "Server Firewalls Updated"))
     _))
 
-(defn create-instance [config]
+(defn create-instance
+  "Takes a server configuration and creates Digital Ocean instance"
+  [config]
   (->DigitalOcean (atom config)))

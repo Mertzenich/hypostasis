@@ -1,6 +1,9 @@
 (ns hypostasis.plugins.plugin)
 
 (defprotocol Plugin
+  "Remote server plugin protocol, must be implemented by plugins.
+  Server plugins must also provide a create-instance function
+  in addition to implementing the protocol."
   (provision [this] "Provision a new server")
   (destroy [this] "Destroy the server")
   (initialize [this servers] "Initialize the server")
