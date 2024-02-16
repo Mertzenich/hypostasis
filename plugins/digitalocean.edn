@@ -1,0 +1,4 @@
+{:name :DigitalOcean
+ :version "0.0.1"
+ :jar "digitalocean.jar"
+ :main "digitalocean.core"}
